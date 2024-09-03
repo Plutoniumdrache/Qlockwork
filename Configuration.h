@@ -32,13 +32,15 @@
 #define SHOW_MODE_WEEKDAY
 #define SHOW_MODE_DATE
 #define SHOW_MODE_MOONPHASE
-//#define SHOW_MODE_SUNRISE_SUNSET // works only if APIKEY is defined
+//#define SHOW_MODE_SUNRISE_SUNSET // works only if WEATHER is defined
 #define SHOW_MODE_TEST
 
-//#define APIKEY "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-#define LOCATION "Berlin, DE"
-//#define LOCATION "Zurich, CH"
-//#define LOCATION "Hong Kong, HK"
+#define WEATHER // Show weather data
+
+// Enter the location for which you want the current weather data displayed as latitude and longitude and the time zone.
+#define LATITUDE "78.61845840781373"
+#define LONGITUDE "15.968072230339736"
+#define TIMEZONE "Europe/Berlin"
 
 //#define FRONTCOVER_EN
 #define FRONTCOVER_DE_DE

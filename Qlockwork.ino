@@ -20,10 +20,11 @@
 //
 //*****************************************************************************
 
-#define FIRMWARE_VERSION 20220830
+#define FIRMWARE_VERSION 20240830
 
 #include <Arduino.h>
 #include <Arduino_JSON.h>
+#include <ArduinoJson.h>
 #include <ArduinoHttpClient.h>
 #include <ArduinoOTA.h>
 #include <DHT.h>
@@ -42,7 +43,7 @@
 #include "LedDriver.h"
 #include "Modes.h"
 #include "Ntp.h"
-#include "OpenWeather.h"
+#include "MeteoWeather.h"
 #include "Renderer.h"
 #include "Settings.h"
 #include "Syslog.h"
@@ -126,8 +127,8 @@ uint8_t feedColor = WHITE;
 uint8_t feedPosition = 0;
 
 // OpenWeather
-#ifdef APIKEY
-OpenWeather outdoorWeather;
+#ifdef WEATHER
+MeteoWeather outdoorWeather;
 uint8_t errorCounterOutdoorWeather = 0;
 #endif
 
@@ -161,7 +162,7 @@ uint8_t alarmOn = false;
     uint32_t showEventTimer = EVENT_TIME;
 #endif
 
-#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
 bool sunrise_started = false;
 unsigned long sunrise_millis = 0;
 bool sunset_started = false;
@@ -331,7 +332,7 @@ void setup()
 
 #ifdef SYSLOGSERVER_SERVER
         Serial.println("Starting syslog.");
-#ifdef APIKEY
+#ifdef WEATHER
         syslog.log(LOG_INFO, ";#;dateTime;roomTemperature;roomHumidity;outdoorTemperature;outdoorHumidity;sunriseTime;sunsetTime;ldrValue;errorCounterNTP;errorCounterDHT;errorCounterOutdoorWeather;freeHeapSize;upTime");
 #else
         syslog.log(LOG_INFO, ";#;dateTime;roomTemperature;roomHumidity;ldrValue;errorCounterNTP;errorCounterDHT;freeHeapSize;upTime");
@@ -339,11 +340,11 @@ void setup()
 #endif
 
         // Get weather from OpenWeather
-#ifdef APIKEY
+#ifdef WEATHER
 #ifdef DEBUG
         Serial.println("Getting outdoor weather:");
 #endif
-        !outdoorWeather.getOutdoorConditions(LOCATION, APIKEY, LANGSTR) ? errorCounterOutdoorWeather++ : errorCounterOutdoorWeather = 0;
+        !outdoorWeather.getOutdoorConditions(LATITUDE, LONGITUDE, TIMEZONE) ? errorCounterOutdoorWeather++ : errorCounterOutdoorWeather = 0;
 #ifdef DEBUG
         Serial.println("Weather description: " + String(outdoorWeather.description));
         Serial.println("Outdoor temperature: " + String(outdoorWeather.temperature));
@@ -647,13 +648,15 @@ void loop()
             if (WiFi.isConnected())
             {
                 // Get weather from OpenWeather
-#ifdef APIKEY
+#ifdef WEATHER
 #ifdef DEBUG
-                Serial.println("Getting outdoor weather for location " + String(LOCATION) +":");
+                Serial.println("Getting outdoor weather for latitude " + String(LATITUDE) + " and longitude " + String(LONGITUDE) + ":");
 #endif
-                !outdoorWeather.getOutdoorConditions(LOCATION, APIKEY, LANGSTR) ? errorCounterOutdoorWeather++ : errorCounterOutdoorWeather = 0;
+                !outdoorWeather.getOutdoorConditions(LATITUDE, LONGITUDE, TIMEZONE) ? errorCounterOutdoorWeather++ : errorCounterOutdoorWeather = 0;
 #ifdef DEBUG
-                Serial.println("Location: " + String(LOCATION));
+                Serial.println("Latitude: " + String(LATITUDE));
+                Serial.println("Longitude: " + String(LONGITUDE));
+                Serial.println("Timezone: " + String(TIMEZONE));
                 Serial.println("Weather description: " + String(outdoorWeather.description));
                 Serial.println("Outdoor temperature: " + String(outdoorWeather.temperature));
                 Serial.println("Outdoor humidity: " + String(outdoorWeather.humidity));
@@ -680,7 +683,7 @@ void loop()
             if (WiFi.isConnected())
             {
                 time_t tempEspTime = now();
-#ifdef APIKEY
+#ifdef WEATHER
                 syslog.log(LOG_INFO, ";D;" + String(tempEspTime) + ";" + String(roomTemperature) + ";" + String(roomHumidity) + ";" + String(outdoorWeather.temperature) + ";" + String(outdoorWeather.humidity) + ";" \
                 +String(hour(timeZone.toLocal(outdoorWeather.sunrise))) + ":" + String(minute(timeZone.toLocal(outdoorWeather.sunrise))) + ";" \
                 + String(hour(timeZone.toLocal(outdoorWeather.sunset))) + ":" + String(minute(timeZone.toLocal(outdoorWeather.sunset))) + ";" + String(ldrValue)\
@@ -780,7 +783,7 @@ void loop()
                 switch (autoMode)
                 {
                 case 0:
-#ifdef APIKEY
+#ifdef WEATHER
                     if (WiFi.isConnected())
                     {
                         setMode(MODE_EXT_TEMP);
@@ -797,7 +800,7 @@ void loop()
 #if defined(RTC_BACKUP) || defined(SENSOR_DHT22)
                     setMode(MODE_TEMP);
 #else
-#ifdef APIKEY
+#ifdef WEATHER
                     if (WiFi.isConnected())
                     {
                         setMode(MODE_EXT_TEMP);
@@ -912,7 +915,7 @@ void loop()
         switch (mode)
         {
         case MODE_TIME:
-#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
             sunrise_started = false;
             sunset_started = false;
 #endif
@@ -974,7 +977,7 @@ void loop()
             renderer.setPixelInScreenBuffer(5, 9, matrix);
             break;
 #endif
-#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
         case MODE_SUNRISE:
             if (!sunrise_started)
             {
@@ -1124,7 +1127,7 @@ void loop()
 #endif
 #ifdef SHOW_MODE_MOONPHASE
         case MODE_MOONPHASE:
-#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
             settings.mySettings.color = save_color_sunrise_sunset;
 #endif
             renderer.clearScreenBuffer(matrix);
@@ -1272,7 +1275,7 @@ void loop()
             break;
 #endif
 #endif
-#ifdef APIKEY
+#ifdef WEATHER
         case MODE_EXT_TEMP:
 #ifdef DEBUG
             Serial.println("Outdoor temperature: " + String(outdoorWeather.temperature));
@@ -1423,7 +1426,7 @@ void loop()
     // Wait for mode timeout then switch back to time
     if ((millis() > (modeTimeout + settings.mySettings.timeout * 1000)) && modeTimeout)
     {
-// #if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+// #if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
 //        sunrise_started = false;
 //        sunset_started = false;
 // #endif
@@ -1582,7 +1585,7 @@ void buttonTimePressed()
         alarmOn = false;
     }
 #endif
-#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+#if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
     settings.mySettings.color = save_color_sunrise_sunset;
 #endif
     modeTimeout = 0;
@@ -1641,7 +1644,7 @@ void setMode(Mode newMode)
 #ifdef SHOW_MODE_DATE
     case MODE_DATE:
 #endif
-// #if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(APIKEY)
+// #if defined(SHOW_MODE_SUNRISE_SUNSET) && defined(WEATHER)
 //     case MODE_SUNRISE:
 //     case MODE_SUNSET:
 // #endif
@@ -1655,7 +1658,7 @@ void setMode(Mode newMode)
     case MODE_TEMP:
     case MODE_HUMIDITY:
 #endif
-#ifdef APIKEY
+#ifdef WEATHER
     case MODE_EXT_TEMP:
     case MODE_EXT_HUMIDITY:
 #endif
@@ -1977,7 +1980,7 @@ void handleRoot()
         message += "&nbsp;<i style=\"color:Blue;\" class=\"fa fa-square-o\"></i>";
     message += "</span>";
 #endif
-#ifdef APIKEY
+#ifdef WEATHER
     message += "<br><br><i class = \"fa fa-tree\" style=\"font-size:20px;\"></i>"
         "<br><i class = \"fa fa-thermometer\" style=\"font-size:20px;\"></i> " + String(outdoorWeather.temperature) + "&deg;C / " + String(outdoorWeather.temperature * 1.8 + 32.0) + "&deg;F" +\
         "<br><i class = \"fa fa-tint\" style=\"font-size:20px;\"></i> " + String(outdoorWeather.humidity) + "% RH" +\
@@ -2019,7 +2022,7 @@ void handleRoot()
 #ifdef SENSOR_DHT22
     message += "<br>Error (DHT): " + String(errorCounterDHT);
 #endif
-#ifdef APIKEY
+#ifdef WEATHER
     message += "<br>Error (OpenWeather): " + String(errorCounterOutdoorWeather);
 #endif
     message += "<br>Reset reason: " + ESP.getResetReason();

@@ -61,7 +61,7 @@ Webpage to control and configure the clock via WiFi.
 Adaptive brightness control when using an LDR.
 3 transitions for timechange.
 Indoor temperature from RTC or temperature and humidity from DHT sensor.
-Outdoor temperature and humidity from OpenWeather. You need an APIKey from OpenWeather to use this feature.
+Outdoor temperature and humidity from OpenWeather. You need an WEATHER from OpenWeather to use this feature.
 Visualisation of moonphase.
 Show sunrise and sunset times with animation.
 Textfeed for events and infos, local and over the web.
@@ -103,6 +103,7 @@ Needed libraries: (recommended/tested versions in brackets)
 Arduino IDE for Windows (1.8.19)
 esp8266 by ESP8266 Community (3.0.2)
 Arduino_JSON by Arduino (0.1.0)
+ArduinoJason by bblanchon (7.1.0)
 Adafruit NeoPixel by Adafruit (1.10.4)
 Adafruit Unified Sensor by Adafruit (1.1.5)
 ArduinoHttpClient by Arduino (0.4.0)
@@ -235,8 +236,11 @@ Configuration.h - Software settings:
 #define SHOW_MODE_SUNRISE_SUNSET    Show sunrise and sunset times.
 #define SHOW_MODE_TEST              Show tests.
 
-#define APIKEY                      Your OpenWeather API key.
-#define LOCATION                    Your location for OpenWeather.
+#define WEATHER                     Show weather.
+
+#define LATITUDE                    Latitude for weather location.
+#define LONGITUDE                   Longitude for weather location.
+#define TIMEZONE                    Timezone for weather location.
 
 #define TIMEZONE_*                  The time zone in which the clock is located. Important for the UTC offset and the
                                     summer/winter time change.
